@@ -8,7 +8,42 @@ decisioni di design (fonte di verità del progetto).
 
 Next.js (App Router) + TypeScript, Prisma + PostgreSQL, Vitest per i test.
 
-## Setup locale
+## Setup con Docker (consigliato se non hai Node.js installato)
+
+Serve solo [Docker Desktop](https://www.docker.com/products/docker-desktop/)
+installato — nessun bisogno di Node.js in locale.
+
+1. Crea il file `.env` nella root del progetto con la connection string del
+   tuo database (es. [Neon](https://neon.tech), free tier):
+
+   ```
+   DATABASE_URL="postgresql://utente:password@host/db?sslmode=require"
+   ```
+
+2. Avvia il container:
+
+   ```bash
+   docker compose up
+   ```
+
+   La prima volta impiega qualche minuto (installa le dipendenze dentro
+   l'immagine). Le volte successive è quasi immediato.
+
+3. In un altro terminale, applica lo schema e i dati di esempio (dentro il
+   container in esecuzione):
+
+   ```bash
+   docker compose exec app npx prisma migrate dev
+   docker compose exec app npm run prisma:seed
+   ```
+
+4. Apri [http://localhost:3000](http://localhost:3000).
+
+Il codice sorgente è montato come volume: modifichi i file sul tuo computer
+con un editor qualsiasi (es. VS Code) e il server dentro il container si
+aggiorna automaticamente (hot reload), senza dover ricostruire l'immagine.
+
+## Setup locale (con Node.js installato)
 
 1. Installa le dipendenze:
 
