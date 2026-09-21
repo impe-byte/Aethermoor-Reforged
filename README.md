@@ -1,36 +1,69 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# Aethermoor: Reforged
 
-## Getting Started
+RPG a missioni/istanze con personaggio persistente e combattimento a turni
+automatico. Vedi `docs/project-brief.md` per la visione completa e le
+decisioni di design (fonte di verità del progetto).
 
-First, run the development server:
+## Stack
+
+Next.js (App Router) + TypeScript, Prisma + PostgreSQL, Vitest per i test.
+
+## Setup locale
+
+1. Installa le dipendenze:
+
+   ```bash
+   npm install
+   ```
+
+2. Configura `DATABASE_URL` in `.env` (una Postgres locale va bene; per il
+   deploy si useranno Supabase/Neon). Esempio già presente in `.env`.
+
+3. Applica lo schema e popola dati di esempio (1 personaggio, 1 missione,
+   2 nemici, 4 oggetti):
+
+   ```bash
+   npx prisma migrate dev
+   npm run prisma:seed
+   ```
+
+4. Avvia il dev server:
+
+   ```bash
+   npm run dev
+   ```
+
+   Apri [http://localhost:3000](http://localhost:3000): schermata personaggio
+   → selezione missione → combattimento → risultato.
+
+## Test e bilanciamento
 
 ```bash
-npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
+npm run test        # test automatici del motore di combattimento
+npm run simulate    # simulazione bilanciamento N=1..4 giocatori
 ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+Lo script `scripts/simulate-balance.ts` fa combattere gruppi simulati contro
+i nemici scalati e stampa % HP residuo medio e turni impiegati per verificare
+che le formule di scaling reggano prima del playtest umano.
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+## Struttura del codice
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+- `prisma/schema.prisma` — schema dati (Character, Item, Enemy, Mission, ...)
+- `src/lib/combat/` — motore di combattimento, puro e testato in isolamento
+  (`engine.ts`, `formulas.ts`), indipendente da Prisma/Next.js
+- `src/lib/mission/instance.ts` — generazione istanza missione (scaling
+  multiplayer), risoluzione turni, calcolo ricompense a fine missione
+- `src/app/` — le 4 schermate dell'HUB (personaggio, missioni, combattimento,
+  risultato) + API routes che espongono il motore
 
-## Learn More
+## Stato attuale / limiti noti
 
-To learn more about Next.js, take a look at the following resources:
-
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
-
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
-
-## Deploy on Vercel
-
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
-
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+- Solo la classe Guerriero è giocabile (fase 0, come da brief).
+- Le istanze di missione vivono in memoria nel processo Next.js: adeguato per
+  sviluppo/playtest locale, non ancora per un deploy multi-processo (in quel
+  caso serve uno store condiviso tipo Redis).
+- Il flusso multiplayer reale (più giocatori umani nella stessa istanza,
+  invito amici) non è ancora implementato: il motore supporta N giocatori e
+  lo scaling è testato, ma manca la parte di sincronizzazione client-server
+  per una sessione condivisa — da progettare come prossimo passo.

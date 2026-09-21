@@ -1,69 +1,96 @@
-import Image from "next/image";
-import styles from "./page.module.css";
+"use client";
 
-export default function Home() {
-  return (
-    <div className={styles.page}>
-      <main className={styles.main}>
-        <Image
-          className={styles.logo}
-          src="/next.svg"
-          alt="Next.js logo"
-          width={100}
-          height={20}
-          priority
-        />
-        <div className={styles.intro}>
-          <h1>
-            To get started, edit the{" "}
-            <code className={styles.code}>page.tsx</code> file.
-          </h1>
-          <p>
-            Looking for a starting point or more instructions? Head over to{" "}
-            <a
-              href="https://vercel.com/templates?framework=next.js&utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-              target="_blank"
-              rel="noopener noreferrer"
-            >
-              Templates
-            </a>{" "}
-            or the{" "}
-            <a
-              href="https://nextjs.org/learn?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-              target="_blank"
-              rel="noopener noreferrer"
-            >
-              Learning
-            </a>{" "}
-            center.
-          </p>
-        </div>
-        <div className={styles.ctas}>
-          <a
-            className={styles.primary}
-            href="https://vercel.com/new?utm_source=create-next-app&utm_medium=appdir-template&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            <Image
-              className={styles.logo}
-              src="/vercel.svg"
-              alt="Vercel logomark"
-              width={16}
-              height={14}
-            />
-            Deploy Now
-          </a>
-          <a
-            className={styles.secondary}
-            href="https://nextjs.org/docs?utm_source=create-next-app&utm_medium=appdir-template&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            Documentation
-          </a>
-        </div>
+import { useEffect, useState } from "react";
+import Link from "next/link";
+
+interface Modificatore {
+  stat: string;
+  valore: number;
+}
+
+interface Item {
+  id: string;
+  nome: string;
+  slot: string;
+  rarita: string;
+  effettoSpeciale: string | null;
+  modificatori: Modificatore[];
+}
+
+interface Character {
+  id: string;
+  nome: string;
+  classe: string;
+  livello: number;
+  esperienza: number;
+  forza: number;
+  intelletto: number;
+  vitalita: number;
+  agilita: number;
+  arma: Item | null;
+  accessorio: Item | null;
+}
+
+const SOGLIA_LIVELLO = 500;
+
+export default function SchermataPersonaggio() {
+  const [character, setCharacter] = useState<Character | null>(null);
+
+  useEffect(() => {
+    fetch("/api/characters")
+      .then((r) => r.json())
+      .then((personaggi) => {
+        if (personaggi[0]) {
+          return fetch(`/api/characters/${personaggi[0].id}`).then((r) => r.json());
+        }
+        return null;
+      })
+      .then(setCharacter);
+  }, []);
+
+  if (!character) {
+    return (
+      <main>
+        <p>Caricamento personaggio…</p>
       </main>
-    </div>
+    );
+  }
+
+  return (
+    <main>
+      <nav>
+        <a href="/">Personaggio</a>
+        <Link href="/missioni">Missioni</Link>
+      </nav>
+
+      <h1>{character.nome}</h1>
+      <p>
+        {character.classe} — Livello {character.livello} ({character.esperienza}/{SOGLIA_LIVELLO} XP)
+      </p>
+
+      <div className="panel">
+        <h2>Statistiche</h2>
+        <div className="stat-grid">
+          <div className="stat"><span>Forza</span><span>{character.forza}</span></div>
+          <div className="stat"><span>Intelletto</span><span>{character.intelletto}</span></div>
+          <div className="stat"><span>Vitalità</span><span>{character.vitalita}</span></div>
+          <div className="stat"><span>Agilità</span><span>{character.agilita}</span></div>
+        </div>
+      </div>
+
+      <div className="panel">
+        <h2>Equipaggiamento</h2>
+        <p>
+          <strong>Arma:</strong> {character.arma ? character.arma.nome : "Nessuna"}
+        </p>
+        <p>
+          <strong>Accessorio:</strong> {character.accessorio ? character.accessorio.nome : "Nessuno"}
+        </p>
+      </div>
+
+      <Link href="/missioni">
+        <button>Vai alle missioni</button>
+      </Link>
+    </main>
   );
 }

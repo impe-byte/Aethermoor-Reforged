@@ -1,0 +1,152 @@
+// Aethermoor: Reforged — schema dati fase 0
+// Fonte di verità: project brief, sezione 4
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+enum CharacterClass {
+  GUERRIERO
+  MAGO
+  RANGER
+}
+
+enum ItemSlot {
+  ARMA
+  ACCESSORIO
+}
+
+enum ItemRarity {
+  COMUNE
+  RARO
+  EPICO
+}
+
+enum EnemyBehavior {
+  ATTACCA_PIU_DEBOLE
+  ATTACCA_RANDOM
+}
+
+enum MissionObjectiveType {
+  ELIMINA_TUTTI
+}
+
+enum RewardType {
+  VALUTA
+  ITEM
+}
+
+model Character {
+  id         String         @id @default(cuid())
+  nome       String
+  classe     CharacterClass
+  livello    Int            @default(1)
+  esperienza Int            @default(0)
+
+  forza      Int @default(10)
+  intelletto Int @default(10)
+  vitalita   Int @default(10)
+  agilita    Int @default(10)
+
+  armaId       String?
+  arma         Item?   @relation("ArmaEquipaggiata", fields: [armaId], references: [id])
+  accessorioId String?
+  accessorio   Item?   @relation("AccessorioEquipaggiato", fields: [accessorioId], references: [id])
+
+  inventario Item[] @relation("Inventario")
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+model Item {
+  id     String     @id @default(cuid())
+  nome   String
+  slot   ItemSlot
+  rarita ItemRarity
+
+  modificatori    ItemModifier[]
+  effettoSpeciale String?
+
+  equipaggiatoComeArmaDa       Character[] @relation("ArmaEquipaggiata")
+  equipaggiatoComeAccessorioDa Character[] @relation("AccessorioEquipaggiato")
+
+  characterId String?
+  character   Character? @relation("Inventario", fields: [characterId], references: [id])
+
+  createdAt DateTime @default(now())
+}
+
+model ItemModifier {
+  id     String @id @default(cuid())
+  stat   String
+  valore Int
+
+  itemId String
+  item   Item   @relation(fields: [itemId], references: [id], onDelete: Cascade)
+}
+
+model Enemy {
+  id            String        @id @default(cuid())
+  nome          String
+  hpBase        Int
+  dannoBase     Int
+  agilitaBase   Int
+  comportamento EnemyBehavior
+  tier          Int
+
+  poolNemici WavePoolEntry[]
+}
+
+model Mission {
+  id                  String               @id @default(cuid())
+  nome                String
+  ambientazione       String
+  tipoObiettivo       MissionObjectiveType @default(ELIMINA_TUTTI)
+  durataStimataMinuti Int
+
+  hpMultiplierPerPlayer Float @default(0.25)
+  nemiciExtraPerPlayer  Int   @default(1)
+
+  ondate      Wave[]
+  rewardTable RewardEntry[]
+
+  createdAt DateTime @default(now())
+}
+
+model Wave {
+  id               String @id @default(cuid())
+  ordine           Int
+  numeroNemiciBase Int
+
+  missionId String
+  mission   Mission @relation(fields: [missionId], references: [id], onDelete: Cascade)
+
+  poolNemici WavePoolEntry[]
+}
+
+model WavePoolEntry {
+  id   String @id @default(cuid())
+  peso Int
+
+  waveId String
+  wave   Wave   @relation(fields: [waveId], references: [id], onDelete: Cascade)
+
+  enemyId String
+  enemy   Enemy  @relation(fields: [enemyId], references: [id])
+}
+
+model RewardEntry {
+  id            String     @id @default(cuid())
+  tipo          RewardType
+  valoreOItemId String
+  probabilita   Float
+
+  missionId String
+  mission   Mission @relation(fields: [missionId], references: [id], onDelete: Cascade)
+}
